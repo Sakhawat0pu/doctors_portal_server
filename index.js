@@ -11,10 +11,10 @@ app.use(cors());
 app.use(express.json());
 
 const serviceAccount = {
-  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+  private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
   project_id: process.env.FIREBASE_PROJECT_ID,
   client_email: process.env.FIREBASE_CLIENT_EMAIL,
-}
+};
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -50,7 +50,7 @@ async function run() {
       const email = req.query.email;
       const decodedEmail = req.decodedEmail;
       if (email === decodedEmail) {
-        const date = new Date(req.query.date).toLocaleDateString();
+        const date = req.query.date;
         const query = { email: email, date: date };
         const cursor = appointmentsCollection.find(query);
         const appointments = await cursor.toArray();
