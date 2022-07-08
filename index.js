@@ -1,15 +1,18 @@
+require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_SECRET);
+
 const express = require("express");
 const cors = require("cors");
 const app = express();
 const ObjectId = require("mongodb").ObjectId;
 const admin = require("firebase-admin");
-require("dotenv").config();
+
 const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
-
+console.log();
 const serviceAccount = {
   private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -56,7 +59,7 @@ async function run() {
         const appointments = await cursor.toArray();
         res.json(appointments);
       } else {
-        req.status(401).json({ message: "Unauthorized user" });
+        res.status(401).json({ message: "Unauthorized user" });
       }
     });
 
@@ -71,9 +74,25 @@ async function run() {
       res.json({ isAdmin });
     });
 
+    app.get("/appointments/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const appointment = await appointmentsCollection.findOne(query);
+      res.json(appointment);
+    });
+
     app.post("/appointments", async (req, res) => {
       const appointment = req.body;
       const result = await appointmentsCollection.insertOne(appointment);
+      res.json(result);
+    });
+
+    app.put("/appointments/:id", async (req, res) => {
+      const id = req.params.id;
+      const payment = req.body;
+      const filter = { _id: ObjectId(id) };
+      const updatedDoc = { $set: { payment: payment } };
+      const result = await appointmentsCollection.updateOne(filter, updatedDoc);
       res.json(result);
     });
 
@@ -118,6 +137,17 @@ async function run() {
             .json({ message: "You don't have access to this page" });
         }
       }
+    });
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const paymentInfo = req.body;
+      const amount = paymentInfo.price * 100; //cents
+      const paymentIntent = await stripe.paymentIntents.create({
+        currency: "usd",
+        amount: amount,
+        payment_method_types: ["card"],
+      });
+      res.json({ clientSecret: paymentIntent.client_secret });
     });
   } finally {
     // await client.close()

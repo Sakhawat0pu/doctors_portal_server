@@ -17,6 +17,7 @@
     "firebase-admin": "^11.0.0",
     "heroku": "^7.60.2",
     "mongodb": "^4.7.0",
-    "nodemon": "^2.0.18"
+    "nodemon": "^2.0.18",
+    "stripe": "^9.11.0"
   }
 }
