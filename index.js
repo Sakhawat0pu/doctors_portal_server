@@ -7,12 +7,14 @@ const cors = require("cors");
 const app = express();
 const ObjectId = require("mongodb").ObjectId;
 const admin = require("firebase-admin");
+const fileUpload = require("express-fileupload");
 
 const port = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
-console.log();
+app.use(fileUpload());
+
 const serviceAccount = {
   private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),
   project_id: process.env.FIREBASE_PROJECT_ID,
@@ -48,6 +50,7 @@ async function run() {
     const database = client.db("doctors_portal");
     const appointmentsCollection = database.collection("appointments");
     const usersCollection = database.collection("users");
+    const doctorsCollection = database.collection("doctors");
 
     app.get("/appointments", verifyToken, async (req, res) => {
       const email = req.query.email;
@@ -100,6 +103,28 @@ async function run() {
       const user = req.body;
       console.log(user);
       const result = await usersCollection.insertOne(user);
+      res.json(result);
+    });
+
+    app.get("/doctors", async (req, res) => {
+      const cursor = doctorsCollection.find({});
+      const doctors = await cursor.toArray();
+      res.json(doctors);
+    });
+
+    app.post("/doctors", async (req, res) => {
+      const name = req.body.name;
+      const email = req.body.email;
+      const pic = req.files.image;
+      const picData = pic.data;
+      const encodedPic = picData.toString("base64");
+      const imageBuffer = Buffer.from(encodedPic, "base64");
+      const doctor = {
+        name,
+        email,
+        image: imageBuffer,
+      };
+      const result = await doctorsCollection.insertOne(doctor);
       res.json(result);
     });
 
